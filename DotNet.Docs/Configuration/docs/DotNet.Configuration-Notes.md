@@ -535,3 +535,320 @@ public class ConfigurationSection : IConfigurationSection
         }
 ```
 
+
+
+## Options interfaces
+
+[IOptions](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.options.ioptions-1):
+
+- Does**not**support:
+  - Reading of configuration data after the app has started.
+  - [Named options](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/options#named-options-support-using-iconfigurenamedoptions)
+- Is registered as a [Singleton](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/dependency-injection#singleton) and can be injected into any [service lifetime](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/dependency-injection#service-lifetimes).
+
+[IOptionsSnapshot](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.options.ioptionssnapshot-1):
+
+- Is useful in scenarios where options should be recomputed on every injection resolution, in [scoped or transient lifetimes](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/dependency-injection#service-lifetimes). For more information, see [Use IOptionsSnapshot to read updated data](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/options#use-ioptionssnapshot-to-read-updated-data).
+- Is registered as [Scoped](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/dependency-injection#scoped) and therefore cannot be injected into a Singleton service.
+- Supports [named options](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/options#named-options-support-using-iconfigurenamedoptions)
+
+[IOptionsMonitor](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.options.ioptionsmonitor-1):
+
+- Is used to retrieve options and manage options notifications for `TOptions` instances.
+- Is registered as a [Singleton](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/dependency-injection#singleton) and can be injected into any [service lifetime](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/dependency-injection#service-lifetimes).
+- Supports:
+  - Change notifications
+  - [Named options](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/options#named-options-support-using-iconfigurenamedoptions)
+  - [Reloadable configuration](https://docs.microsoft.com/zh-cn/dotnet/core/extensions/options#use-ioptionssnapshot-to-read-updated-data)
+  - Selective options invalidation ([IOptionsMonitorCache](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.options.ioptionsmonitorcache-1))
+
+
+
+【示例：3-1.DotNet.Configuration.OptionsPattern】
+
+添加`appsetting.json`配置文件
+
+```json
+{
+  "MyOption": {
+    "Option1": "Option-01",
+    "Option2": "Option-02"
+  }
+}
+
+```
+
+MyOption.cs
+
+```C#
+namespace DotNet.Configuration.OptionsPattern
+{
+    public class MyOption
+    {
+        public string Id { get; set; } 
+        public string Option1 { get; set; }
+        public string Option2 { get; set; }
+
+        public MyOption()
+        {
+            Id = Guid.NewGuid().ToString()[^4..];
+        }
+
+    }
+}
+```
+
+
+
+Program.cs
+
+```C#
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System;
+
+namespace DotNet.Configuration.OptionsPattern
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            IHost host = CreateHostBuilder(args).Build();
+
+            using IServiceScope serviceScope = host.Services.CreateScope();
+            IServiceProvider provider = serviceScope.ServiceProvider;
+            //host.Services.C
+
+
+
+            host.Run();
+        }
+
+        static IHostBuilder CreateHostBuilder(string[] args)
+        {
+            return Host.CreateDefaultBuilder(args)
+                .ConfigureServices(services =>
+                {
+                    IServiceProvider serviceProvider = services.BuildServiceProvider();
+                    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+                    var myoption = configuration.GetSection(nameof(MyOption)).Get<MyOption>();
+                    Console.WriteLine($"ConfigureService-->MyOption:{Newtonsoft.Json.JsonConvert.SerializeObject(myoption)}");
+
+
+                    //依赖注入
+                    services.Configure<MyOption>(configuration.GetSection(nameof(MyOption)));
+
+                    services.AddTransient<ExampleService>();
+                    services.AddTransient<ScopedService>();
+                    services.AddTransient<MonitorService>();
+
+                    services.AddHostedService<Worker>();
+                    
+                });
+        }
+    }
+}
+
+```
+
+- 将`MyOption`依赖注入到DI容器中
+
+  ```C#
+  services.Configure<MyOption>(configuration.GetSection(nameof(MyOption)));
+  ```
+
+  
+
+Woker.cs
+
+```C#
+public class Worker : BackgroundService
+    {
+        private readonly ExampleService _exampleService;
+        private readonly ScopedService _scopedService;
+        private readonly MonitorService _monitorService;
+
+        public Worker(ExampleService exampleService,
+            ScopedService scopedService,
+            MonitorService monitorService)
+        {
+            _exampleService = exampleService;
+            _scopedService = scopedService;
+            _monitorService = monitorService;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                Console.WriteLine($"\n\r--------------at { DateTime.UtcNow}--------------");
+
+                _exampleService.DisplayValues();
+                _scopedService.DisplayValues();
+                _monitorService.DisplayValues();
+
+                await Task.Delay(10 * 1000, stoppingToken);
+            }
+        }
+    }
+```
+
+ExampleService.cs
+
+```C#
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using System;
+
+namespace DotNet.Configuration.OptionsPattern
+{
+    public class ExampleService
+    {
+        public string Id { get; set; }
+        private readonly IServiceProvider _serviceProvider;
+
+        public ExampleService(IServiceProvider serviceProvider)
+        {
+            Id = Guid.NewGuid().ToString()[^4..];
+            _serviceProvider = serviceProvider;
+        }
+
+        public void DisplayValues()
+        {
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var option = scope.ServiceProvider.GetRequiredService<IOptions<MyOption>>().Value;
+                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptions<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(option)}");
+                
+                var optionsSnapshot = scope.ServiceProvider.GetRequiredService<IOptionsSnapshot<MyOption>>().Value;
+                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsSnapshot<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsSnapshot)}");
+                
+                var optionsMonitor = scope.ServiceProvider.GetRequiredService<IOptionsMonitor<MyOption>>().CurrentValue;
+                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsMonitor<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsMonitor)}");
+
+            }
+        }
+
+    }
+
+}
+
+```
+
+
+
+ScopedService.cs
+
+```C#
+    public class ScopedService
+    {
+        public string Id { get; set; }
+        private readonly IServiceProvider _serviceProvider;
+
+        public ScopedService(IServiceProvider serviceProvider)
+        {
+            Id = Guid.NewGuid().ToString()[^4..];
+            _serviceProvider = serviceProvider;
+        }
+
+        public void DisplayValues()
+        {
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var optionsSnapshot = scope.ServiceProvider.GetRequiredService<IOptionsSnapshot<MyOption>>().Value;
+                Console.WriteLine($"{Id}.{nameof(ScopedService)}.IOptionsSnapshot<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsSnapshot)}");
+            }
+        }
+
+    }
+```
+
+
+
+MonitorService.cs
+
+```C#
+public class MonitorService
+{
+    public string Id { get; set; }
+    private readonly IServiceProvider _serviceProvider;
+
+    public MonitorService(IServiceProvider serviceProvider)
+    {
+        Id = Guid.NewGuid().ToString()[^4..];
+        _serviceProvider = serviceProvider;
+    }
+
+    public void DisplayValues()
+    {
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var optionsMonitor = scope.ServiceProvider.GetRequiredService<IOptionsMonitor<MyOption>>().CurrentValue;
+            Console.WriteLine($"{Id}.{nameof(MonitorService)}.IOptionsMonitor<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsMonitor)}");
+        }
+    }
+
+}
+```
+
+
+运行控制台项目，输出：
+
+```powershell
+--------------at 2020/12/14 14:23:20--------------
+e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"d4e1","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"bda4","Option1":"Option-01","Option2":"Option-02"}
+ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+
+--------------at 2020/12/14 14:23:25--------------
+e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"88f4","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"a552","Option1":"Option-01","Option2":"Option-02"}
+ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+
+--------------at 2020/12/14 14:23:30--------------
+e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"9424","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"3536","Option1":"Option-01","Option2":"Option-02"}
+ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+
+//.....
+//修改bin文件夹下`appsetting.json`配置文件中的"Option1"为 "Option-012",
+
+--------------at 2020/12/14 14:24:13--------------
+e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"66de","Option1":"Option-012","Option2":"Option-02"}
+e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"7ea5","Option1":"Option-012","Option2":"Option-02"}
+ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+
+--------------at 2020/12/14 14:24:18--------------
+e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"d294","Option1":"Option-012","Option2":"Option-02"}
+e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"f7bf","Option1":"Option-012","Option2":"Option-02"}
+ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+
+--------------at 2020/12/14 14:24:23--------------
+e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
+e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"d8db","Option1":"Option-012","Option2":"Option-02"}
+e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"1be6","Option1":"Option-012","Option2":"Option-02"}
+ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+
+//.....
+
+```
+
+结论：
+
+      - IOptions<MyOption>：为单例，不可跟踪变化，应用程序启动后无法改变，整个应用程序就一个`MyOption`单例
+      - IOptionsSnapshot<MyOption>：为Scoped，可跟踪变化，每次请求（同作用域内）创建一个新的`MyOption`对象
+      - IOptionsMonitor<MyOption>:为单例，可跟踪变化，配置文件每改变一次，创建一个新的`MyOption`单例
+
