@@ -23,10 +23,14 @@ namespace DotNet.Configuration.OptionsPattern
                 Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptions<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(option)}");
                 
                 var optionsSnapshot = scope.ServiceProvider.GetRequiredService<IOptionsSnapshot<MyOption>>().Value;
-                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsSnapshot<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsSnapshot)}");
-                
+                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsSnapshot<MyOption>-1: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsSnapshot)}");
+                var optionsSnapshot2 = scope.ServiceProvider.GetRequiredService<IOptionsSnapshot<MyOption>>().Value;
+                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsSnapshot<MyOption>-2: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsSnapshot2)}");
+
                 var optionsMonitor = scope.ServiceProvider.GetRequiredService<IOptionsMonitor<MyOption>>().CurrentValue;
                 Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsMonitor<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsMonitor)}");
+
+                Console.WriteLine();
 
             }
         }

@@ -723,10 +723,14 @@ namespace DotNet.Configuration.OptionsPattern
                 Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptions<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(option)}");
                 
                 var optionsSnapshot = scope.ServiceProvider.GetRequiredService<IOptionsSnapshot<MyOption>>().Value;
-                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsSnapshot<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsSnapshot)}");
-                
+                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsSnapshot<MyOption>-1: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsSnapshot)}");
+                var optionsSnapshot2 = scope.ServiceProvider.GetRequiredService<IOptionsSnapshot<MyOption>>().Value;
+                Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsSnapshot<MyOption>-2: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsSnapshot2)}");
+
                 var optionsMonitor = scope.ServiceProvider.GetRequiredService<IOptionsMonitor<MyOption>>().CurrentValue;
                 Console.WriteLine($"{Id}.{nameof(ExampleService)}.IOptionsMonitor<MyOption>: {Newtonsoft.Json.JsonConvert.SerializeObject(optionsMonitor)}");
+
+                Console.WriteLine();
 
             }
         }
@@ -797,50 +801,63 @@ public class MonitorService
 运行控制台项目，输出：
 
 ```powershell
---------------at 2020/12/14 14:23:20--------------
-e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"d4e1","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
-dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"bda4","Option1":"Option-01","Option2":"Option-02"}
-ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+--------------at 2020/12/14 14:47:10--------------
+7c05.ExampleService.IOptions<MyOption>: {"Id":"66a2","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-1: {"Id":"acd2","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-2: {"Id":"acd2","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsMonitor<MyOption>: {"Id":"c5f4","Option1":"Option-01","Option2":"Option-02"}
 
---------------at 2020/12/14 14:23:25--------------
-e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"88f4","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
-dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"a552","Option1":"Option-01","Option2":"Option-02"}
-ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+7f2e.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"838a","Option1":"Option-01","Option2":"Option-02"}
+a0eb.MonitorService.IOptionsMonitor<MyOption>: {"Id":"c5f4","Option1":"Option-01","Option2":"Option-02"}
 
---------------at 2020/12/14 14:23:30--------------
-e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"9424","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
-dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"3536","Option1":"Option-01","Option2":"Option-02"}
-ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"682c","Option1":"Option-01","Option2":"Option-02"}
+--------------at 2020/12/14 14:47:15--------------
+7c05.ExampleService.IOptions<MyOption>: {"Id":"66a2","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-1: {"Id":"7cd5","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-2: {"Id":"7cd5","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsMonitor<MyOption>: {"Id":"c5f4","Option1":"Option-01","Option2":"Option-02"}
+
+7f2e.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"86b2","Option1":"Option-01","Option2":"Option-02"}
+a0eb.MonitorService.IOptionsMonitor<MyOption>: {"Id":"c5f4","Option1":"Option-01","Option2":"Option-02"}
+
+--------------at 2020/12/14 14:47:20--------------
+7c05.ExampleService.IOptions<MyOption>: {"Id":"66a2","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-1: {"Id":"744e","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-2: {"Id":"744e","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsMonitor<MyOption>: {"Id":"c5f4","Option1":"Option-01","Option2":"Option-02"}
+
+7f2e.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"664a","Option1":"Option-01","Option2":"Option-02"}
+a0eb.MonitorService.IOptionsMonitor<MyOption>: {"Id":"c5f4","Option1":"Option-01","Option2":"Option-02"}
 
 //.....
 //修改bin文件夹下`appsetting.json`配置文件中的"Option1"为 "Option-012",
 
---------------at 2020/12/14 14:24:13--------------
-e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"66de","Option1":"Option-012","Option2":"Option-02"}
-e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
-dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"7ea5","Option1":"Option-012","Option2":"Option-02"}
-ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+--------------at 2020/12/14 14:48:38--------------
+7c05.ExampleService.IOptions<MyOption>: {"Id":"66a2","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-1: {"Id":"7de7","Option1":"Option-012","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-2: {"Id":"7de7","Option1":"Option-012","Option2":"Option-02"}
+7c05.ExampleService.IOptionsMonitor<MyOption>: {"Id":"ad5c","Option1":"Option-012","Option2":"Option-02"}
 
---------------at 2020/12/14 14:24:18--------------
-e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"d294","Option1":"Option-012","Option2":"Option-02"}
-e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
-dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"f7bf","Option1":"Option-012","Option2":"Option-02"}
-ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+7f2e.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"2270","Option1":"Option-012","Option2":"Option-02"}
+a0eb.MonitorService.IOptionsMonitor<MyOption>: {"Id":"ad5c","Option1":"Option-012","Option2":"Option-02"}
 
---------------at 2020/12/14 14:24:23--------------
-e477.ExampleService.IOptions<MyOption>: {"Id":"eb51","Option1":"Option-01","Option2":"Option-02"}
-e477.ExampleService.IOptionsSnapshot<MyOption>: {"Id":"d8db","Option1":"Option-012","Option2":"Option-02"}
-e477.ExampleService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
-dc83.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"1be6","Option1":"Option-012","Option2":"Option-02"}
-ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-012","Option2":"Option-02"}
+--------------at 2020/12/14 14:48:43--------------
+7c05.ExampleService.IOptions<MyOption>: {"Id":"66a2","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-1: {"Id":"b251","Option1":"Option-012","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-2: {"Id":"b251","Option1":"Option-012","Option2":"Option-02"}
+7c05.ExampleService.IOptionsMonitor<MyOption>: {"Id":"ad5c","Option1":"Option-012","Option2":"Option-02"}
+
+7f2e.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"f1e4","Option1":"Option-012","Option2":"Option-02"}
+a0eb.MonitorService.IOptionsMonitor<MyOption>: {"Id":"ad5c","Option1":"Option-012","Option2":"Option-02"}
+
+--------------at 2020/12/14 14:48:48--------------
+7c05.ExampleService.IOptions<MyOption>: {"Id":"66a2","Option1":"Option-01","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-1: {"Id":"c4be","Option1":"Option-012","Option2":"Option-02"}
+7c05.ExampleService.IOptionsSnapshot<MyOption>-2: {"Id":"c4be","Option1":"Option-012","Option2":"Option-02"}
+7c05.ExampleService.IOptionsMonitor<MyOption>: {"Id":"ad5c","Option1":"Option-012","Option2":"Option-02"}
+
+7f2e.ScopedService.IOptionsSnapshot<MyOption>: {"Id":"762b","Option1":"Option-012","Option2":"Option-02"}
+a0eb.MonitorService.IOptionsMonitor<MyOption>: {"Id":"ad5c","Option1":"Option-012","Option2":"Option-02"}
+
 
 //.....
 
@@ -848,7 +865,9 @@ ba17.MonitorService.IOptionsMonitor<MyOption>: {"Id":"080b","Option1":"Option-01
 
 结论：
 
-      - IOptions<MyOption>：为单例，不可跟踪变化，应用程序启动后无法改变，整个应用程序就一个`MyOption`单例
-      - IOptionsSnapshot<MyOption>：为Scoped，可跟踪变化，每次请求（同作用域内）创建一个新的`MyOption`对象
-      - IOptionsMonitor<MyOption>:为单例，可跟踪变化，配置文件每改变一次，创建一个新的`MyOption`单例
+  - IOptions<MyOption>：为单例，不可跟踪变化，应用程序启动后无法改变，整个应用程序就一个`MyOption`单例
+  - IOptionsSnapshot<MyOption>：为Scoped，可跟踪变化，每次请求（同作用域内）创建一个新的`MyOption`对象
+  - IOptionsMonitor<MyOption>:为单例，可跟踪变化，配置文件每改变一次，创建一个新的`MyOption`单例
+
+
 
