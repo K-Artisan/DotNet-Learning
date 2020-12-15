@@ -10,37 +10,33 @@ namespace DotNet.Configuration.OptionsPattern
         static void Main(string[] args)
         {
             IHost host = CreateHostBuilder(args).Build();
-
-            using IServiceScope serviceScope = host.Services.CreateScope();
-            IServiceProvider provider = serviceScope.ServiceProvider;
-            //host.Services.C
-
-
-
             host.Run();
         }
 
         static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .ConfigureServices(services =>
+                .ConfigureServices((context, services) =>
                 {
-                    IServiceProvider serviceProvider = services.BuildServiceProvider();
-                    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-
-                    var myoption = configuration.GetSection(nameof(MyOption)).Get<MyOption>();
-                    Console.WriteLine($"ConfigureService-->MyOption:{Newtonsoft.Json.JsonConvert.SerializeObject(myoption)}");
-
-
-                    //依赖注入
-                    services.Configure<MyOption>(configuration.GetSection(nameof(MyOption)));
-
                     services.AddTransient<ExampleService>();
                     services.AddTransient<ScopedService>();
                     services.AddTransient<MonitorService>();
 
                     services.AddHostedService<Worker>();
-                    
+
+                    #region 转移到Configure方法中
+                    //IServiceProvider serviceProvider = services.BuildServiceProvider();
+                    //var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+                    //var myoption = configuration.GetSection(nameof(MyOption)).Get<MyOption>();
+                    //Console.WriteLine($"ConfigureService-->MyOption:{Newtonsoft.Json.JsonConvert.SerializeObject(myoption)}");
+
+
+                    ////依赖注入
+                    //services.Configure<MyOption>(configuration.GetSection(nameof(MyOption))); 
+                    #endregion
+                    services.AddOptions() //注册了Options模式的核心服务
+                            .Configure<MyOption>(context.Configuration.GetSection(nameof(MyOption)));
                 });
         }
     }

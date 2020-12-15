@@ -630,22 +630,25 @@ namespace DotNet.Configuration.OptionsPattern
             return Host.CreateDefaultBuilder(args)
                 .ConfigureServices(services =>
                 {
-                    IServiceProvider serviceProvider = services.BuildServiceProvider();
-                    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-
-                    var myoption = configuration.GetSection(nameof(MyOption)).Get<MyOption>();
-                    Console.WriteLine($"ConfigureService-->MyOption:{Newtonsoft.Json.JsonConvert.SerializeObject(myoption)}");
-
-
-                    //依赖注入
-                    services.Configure<MyOption>(configuration.GetSection(nameof(MyOption)));
-
                     services.AddTransient<ExampleService>();
                     services.AddTransient<ScopedService>();
                     services.AddTransient<MonitorService>();
 
                     services.AddHostedService<Worker>();
                     
+                    #region 转移到Configure方法中
+                    //IServiceProvider serviceProvider = services.BuildServiceProvider();
+                    //var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+                    //var myoption = configuration.GetSection(nameof(MyOption)).Get<MyOption>();
+                    //Console.WriteLine($"ConfigureService-->MyOption:{Newtonsoft.Json.JsonConvert.SerializeObject(myoption)}");
+
+
+                    ////依赖注入
+                    //services.Configure<MyOption>(configuration.GetSection(nameof(MyOption))); 
+                    #endregion
+                    services.AddOptions() //注册了Options模式的核心服务
+                            .Configure<MyOption>(context.Configuration.GetSection(nameof(MyOption)));
                 });
         }
     }
